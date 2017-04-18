@@ -149,6 +149,7 @@ struct neuralNetwork {
 	int depth = 1;
 	int iterations = 0;
 	double meanError = 1000;
+	double oldErr = 1100;
 	int epohs = 0;
 
 	neuralNetwork() {}
@@ -283,6 +284,8 @@ struct neuralNetwork {
 			cout << "learning rate = " << learningRate << endl;
 			if ((abs(k))>acceptableErr) {
 				learningRate = learningRate / 2;
+				meanError = 1000;
+				oldErr = 1100;
 			}
 			else {
 				break;
@@ -337,7 +340,7 @@ struct neuralNetwork {
 
 		double E = err.squaredNorm();
 		E = (E) / m;
-		double oldErr = meanError;
+		oldErr = meanError;
 		meanError = E;
 			cout << "mean " << meanError << endl;
 			cout << "old " << oldErr << endl;

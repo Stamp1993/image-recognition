@@ -8,11 +8,11 @@
 #include<dirent.h>
 #include<stdio.h>
 
-	
 
 
 
-VectorXd readfile (string filename) {
+
+VectorXd readfile(string filename) {
 	ifstream  data(filename);
 	vector<VectorXd> preresult;
 	string line;
@@ -68,7 +68,7 @@ MatrixXd listFile(const char* dirname) {
 }
 
 int main() {
-	
+
 	MatrixXd clocks = listFile("./clocks");
 	MatrixXd crocodiles = listFile("./crocodiles");
 
@@ -80,8 +80,8 @@ int main() {
 	MatrixXd testSet((clocks.rows() + crocodiles.rows()) / sep, clocks.cols());
 	MatrixXd answers((clocks.rows() + crocodiles.rows()) / sep, 2);
 
-	int trs = trainSet.rows() / sep -1;
-	int ts = testSet.rows() / sep -1;
+	int trs = trainSet.rows() - 1;
+	int ts = testSet.rows() - 1;
 	VectorXd cl(2);
 	cl << 1, 0;
 	cl = cl;
@@ -90,76 +90,76 @@ int main() {
 	cr = cr;
 
 	for (int i = 0; i < (clocks.rows()); i++) {
-		if (randDouble() >= (1.0/sep) && trs>=0) {
+		if (randDouble() >= (1.0 / sep) && trs >= 0) {
 			trainSet.row(trs) = clocks.row(i);
 			targets.row(trs) = cl;
 			trs--;
+			trainSet.row(trs) = crocodiles.row(i);
+			targets.row(trs) = cr;
+			trs--;
 		}
-		else if (ts>=0){
+		else if (ts >= 0) {
 			testSet.row(ts) = clocks.row(i);
 			answers.row(ts) = cl;
+			ts--;
+			testSet.row(ts) = crocodiles.row(i);
+			answers.row(ts) = cr;
 			ts--;
 		}
 		else if (trs >= 0) {
 			trainSet.row(trs) = clocks.row(i);
 			targets.row(trs) = cl;
 			trs--;
-		} 
-		else break;
-		
-	}
-	trs = trainSet.rows()-1;
-	ts = testSet.rows()-1;
-	for (int i = 0; i < (crocodiles.rows()); i++) {
-		if (randDouble() >= (1.0/sep) && trs>trainSet.rows() / sep) {
-			trainSet.row(trs) = crocodiles.row(i);
-			targets.row(trs) = cr;
-			trs--;
-		}
-		else if (ts> testSet.rows() /sep ) {
-			testSet.row(ts) = crocodiles.row(i);
-			answers.row(ts) = cr;
-			ts--;
-		}
-		else if (trs > trainSet.rows() / sep) {
 			trainSet.row(trs) = crocodiles.row(i);
 			targets.row(trs) = cr;
 			trs--;
 		}
 		else break;
-		
+
 	}
-	
+
+
 
 	neuralNetwork nn = neuralNetwork(trainSet.cols(), 0.01, logist);
 	nn.addLayer(100);
 	nn.addLayer(2);
-
+	//initially I wrote it for columns
 	//nn.batchBackpropagation(trainSet.transpose(), targets.transpose(), 0.0000000001);
 	nn.batchBackpropagation(trainSet.row(0).transpose(), targets.row(0).transpose(), 0.0001);
-	
+
 	MatrixXd PRMatr = classicPR(3, (*nn.inputs));
 	vector<vector<VectorXd>> PRactivations = nn.activationsRun(PRMatr);
 	MatrixXd PRTarget = nn.batchRun(PRMatr);
-	
-	//variant 1
+
+	//variant 1 - faster for huge amounts of low-dimension data
 	/*for (int i = 0; i < trainSet.rows(); i++) {
+	if (i % 200 == 0) {
+	PRMatr = classicPR(3, (*nn.inputs));
+	PRactivations = nn.activationsRun(PRMatr);
+	PRTarget = nn.batchRun(PRMatr);
+	}
 		VectorXd run = trainSet.row(i).transpose();
 		VectorXd target = targets.row(i).transpose();
 		PRMatr.col(1) = run;
 		PRTarget.col(1) = target;
 		nn.prBackpropagation(PRMatr, PRactivations, PRTarget, 0.000001);
 	}*/
-	//varian 2
-	for (int k = 0; k < 2; k++) {
+	//varian 2 - faster for smaller amounts of high-dimension data
+	
 		for (int i = 0; i < trainSet.rows(); i++) {
+			if (i % 200 == 0) {
+				PRMatr = classicPR(3, (*nn.inputs));
+				PRactivations = nn.activationsRun(PRMatr);
+				PRTarget = nn.batchRun(PRMatr);
+			}
 			VectorXd run = trainSet.row(i).transpose();
 			VectorXd target = targets.row(i).transpose();
 			PRMatr.col(1) = run;
 			PRTarget.col(1) = target;
 			nn.batchBackpropagation(PRMatr, PRTarget, 0.000001);
+
 		}
-	}
+	
 
 	MatrixXd tests = testSet.transpose();
 	MatrixXd pred = (nn.batchRun(tests)).transpose();
@@ -169,7 +169,7 @@ int main() {
 	double TN = 0;
 	double FN = 0;
 
-	for (int i = 0; i < pred.cols(); i++) {
+	for (int i = 0; i < pred.rows(); i++) {
 		bool pr = pred.row(i)[0] > pred.row(i)[1];
 		bool act = answers.row(i)[0] > answers.row(i)[1];
 		if (act) {//positive
