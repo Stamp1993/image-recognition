@@ -284,8 +284,7 @@ struct neuralNetwork {
 			cout << "learning rate = " << learningRate << endl;
 			if ((abs(k))>acceptableErr) {
 				learningRate = learningRate / 2;
-				meanError = 1000;
-				oldErr = 1100;
+				
 			}
 			else {
 				break;
@@ -297,6 +296,7 @@ struct neuralNetwork {
 		epohs = 0;
 		iterations = 0;
 		meanError = 1000;
+		oldErr = 1100;
 		stochastic = true;
 		learningRate = initlr;
 	}
